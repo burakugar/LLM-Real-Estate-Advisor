@@ -4,7 +4,6 @@ import random
 
 def send_request(url, headers):
     try:
-        print(url)  # For debugging purposes
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()

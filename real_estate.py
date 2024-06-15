@@ -80,7 +80,7 @@ class RealEstateAdvisor:
         print(self.api_request)  # Add this line for debugging
 
         try:
-            response = requests.post(api_endpoint, json=self.api_request, headers=headers, verify=False)
+            response = requests.post(api_endpoint, json=self.api_request, headers=headers)
             print("API response status code:", response.status_code)  # Add this line for debugging
             response.raise_for_status()
             response_data = response.json()

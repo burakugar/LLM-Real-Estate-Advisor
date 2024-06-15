@@ -1,10 +1,5 @@
-from IPython.display import IFrame
 import pandas as pd
 import os
-
-url = "https://public.tableau.com/views/ApartmentListingsinPoland/Dashboard2?:language=en-US&:embed=y&:display_count=yes&:showVizHome=no#5"
-
-IFrame(url, width=1670, height=950)
 
 sale_file_paths = [
     "dataset/apartments_pl_2023_08.csv",
@@ -113,5 +108,4 @@ def get_market_data(number_of_rooms):
                 year_data[f'rent_std_price_rooms_{month}'] = std_by_rooms
         
         market_data[str(year)] = year_data
-    
     return market_data
