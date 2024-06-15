@@ -66,7 +66,7 @@ class RealEstateAdvisor:
                 f"Market Data: {market_data}\n"
             )
         }
-        print("user_message", user_message)
+        print("user_message", user_message) 
         # Create messages without appending the market data message to self.messages
         messages = [system_message, user_message]
 
@@ -84,14 +84,14 @@ class RealEstateAdvisor:
         api_endpoint = "https://api.openai.com/v1/chat/completions"
         api_key = "sk-proj-4KTBnonGlUmIDWXdnhqUT3BlbkFJpQblWOKoNltal2SubD3H"
 
-
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
 
         # Add user message to chat history
-        self.messages.append({"role": "user", "content": user_message})
+        if {"role": "user", "content": user_message} not in self.messages:
+            self.messages.append({"role": "user", "content": user_message})
 
         self.prepare_api_request()
 
@@ -103,7 +103,8 @@ class RealEstateAdvisor:
                 response.raise_for_status()
                 response_data = response.json()
                 assistant_response = response_data['choices'][0]['message']['content']
-                self.messages.append({"role": "assistant", "content": assistant_response})
+                if {"role": "assistant", "content": assistant_response} not in self.messages:
+                    self.messages.append({"role": "assistant", "content": assistant_response})
                 return assistant_response
             except requests.exceptions.RequestException as e:
                 if response.status_code == 429:
@@ -183,7 +184,7 @@ advisor = RealEstateAdvisor(
 
 st.header("Chat with the Real Estate Advisor")
 
-# Display chat messages from history on app rerun
+# Display chat messages from history on app rerun# Display chat messages from history on app rerun
 for message in st.session_state.messages:
     if message["role"] == "user":
         with st.chat_message("user"):
@@ -195,16 +196,18 @@ for message in st.session_state.messages:
 # Accept user input
 if prompt := st.chat_input("What would you like to know about real estate investments in Poland?"):
     # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    if {"role": "user", "content": prompt} not in st.session_state.messages:
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
 
     # Get advisor response and display it
-    with st.chat_message("assistant"):
-        advisor_response = advisor.send_api_request(prompt)
-        st.markdown(advisor_response)
+    advisor_response = advisor.send_api_request(prompt)
+    if {"role": "assistant", "content": advisor_response} not in st.session_state.messages:
         st.session_state.messages.append({"role": "assistant", "content": advisor_response})
 
-# To run the Streamlit app, save the script and execute: streamlit run app.py
+    with st.chat_message("assistant"):
+        st.markdown(advisor_response)
+
