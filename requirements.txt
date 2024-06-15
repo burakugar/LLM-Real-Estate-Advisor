@@ -1,0 +1,7 @@
+ipython
+pandas
+DateTime
+requests
+python-dotenv
+streamlit
+flask
