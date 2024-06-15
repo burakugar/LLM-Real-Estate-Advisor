@@ -4,8 +4,11 @@ import requests
 import time
 from dotenv import load_dotenv
 import json
-from html_parser import get_median_price  # Ensure these modules are correctly imported and exist
+from html_parser import get_median_price
 from parser_1 import get_market_data
+import pandas as pd
+import altair as alt
+import re 
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,17 +46,25 @@ class RealEstateAdvisor:
         self.prepare_api_request()
 
     def prepare_api_request(self):
-        # Create the system message to define the advisor's role
         system_message = {
             "role": "system",
             "content": (
                 "You are a real estate advisor specializing in the Polish market. "
-                "Your task is to provide detailed advice based on the client's investment purpose, risk preference, budget, number of rooms, and current market data and inflation. "
-                "Use the provided market data to give precise and actionable recommendations. "
+                "Your task is to provide detailed advice based on the client's investment purpose, risk preference, budget, number of rooms, current market data, and inflation rates. "
+                "Use the provided market data and inflation rates to give precise and actionable recommendations. "
                 "Be professional, detailed, and ensure your advice is practical and based on real data. "
-                "We are in 2024 July at the moment, if you are going to give advice, take this into consideration."
+                "We are in 2024 July at the moment, if you are going to give advice, take this into consideration. "
+                "After providing your advice, predict the median prices for the upcoming years based on the current median prices and inflation rates. "
+                "Provide the predicted prices in the following format: 'Year,Month,Predicted Median Price'. Each prediction should be on a new line. "
+                "For example: "
+                "2024,August,150000\n"
+                "2025,August,160000\n"
+                "2026,August,170000\n"
+                "Please strictly adhere to this format for the predicted prices."
             )
         }
+
+
         market_data = get_market_data(self.number_of_rooms)
         user_message = {
             "role": "user",
@@ -67,8 +78,7 @@ class RealEstateAdvisor:
                 f"Inflation Rates: {market_data['inflation_rates']}\n"
             )
         }
-        print(market_data)
-        # Create messages without appending the market data message to self.messages
+
         messages = [system_message, user_message]
 
         api_request = {
@@ -83,20 +93,16 @@ class RealEstateAdvisor:
 
     def send_api_request(self, user_message):
         api_endpoint = "https://api.openai.com/v1/chat/completions"
-        api_key = "sk-proj-4KTBnonGlUmIDWXdnhqUT3BlbkFJpQblWOKoNltal2SubD3H"
-
+        api_key = os.getenv("OPENAI_API_KEY")
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
 
-        # Add user message to chat history
         self.messages.append({"role": "user", "content": user_message})
-
         self.prepare_api_request()
 
-        # Implement retry mechanism with exponential backoff
         max_retries = 5
         for attempt in range(max_retries):
             try:
@@ -108,13 +114,10 @@ class RealEstateAdvisor:
                 return assistant_response
             except requests.exceptions.RequestException as e:
                 if response.status_code == 429:
-                    print(response)
                     print(f"Rate limit reached. Sleeping for {2 ** attempt} seconds.")
-                    # Too Many Requests error
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = 2 ** attempt
                     time.sleep(wait_time)
                 else:
-                    # Other request errors
                     return f"Error: {str(e)}"
 
         return "Error: Maximum retry attempts exceeded. Please try again later."
@@ -130,7 +133,7 @@ investment_purpose_options = [
     "For residency purposes"
 ]
 st.session_state.investment_purpose = st.selectbox(
-    "Investment Purpose", investment_purpose_options, 
+    "Investment Purpose", investment_purpose_options,
     index=investment_purpose_options.index(st.session_state.investment_purpose) if st.session_state.investment_purpose else 0
 )
 
@@ -140,7 +143,7 @@ risk_preference_options = [
     "Low risk, low return"
 ]
 st.session_state.risk_preference = st.selectbox(
-    "Risk Preference", risk_preference_options, 
+    "Risk Preference", risk_preference_options,
     index=risk_preference_options.index(st.session_state.risk_preference) if st.session_state.risk_preference else 0
 )
 
@@ -184,28 +187,53 @@ advisor = RealEstateAdvisor(
 
 st.header("Chat with the Real Estate Advisor")
 
-# Display chat messages from history on app rerun
+# Display chat messages from history
 for message in st.session_state.messages:
     if message["role"] == "user":
-        with st.chat_message("user"):
-            st.markdown(message["content"])
+        st.chat_message("user", message["content"])
     elif message["role"] == "assistant":
-        with st.chat_message("assistant"):
-            st.markdown(message["content"])
+        st.chat_message("assistant", message["content"])
 
 # Accept user input
-if prompt := st.chat_input("What would you like to know about real estate investments in Poland?"):
+if prompt := st.chat_input("What would you like to know about real estate investments in Poland?", key="user_input"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    # Get advisor response
+    advisor_response = advisor.send_api_request(prompt)
+    st.session_state.messages.append({"role": "assistant", "content": advisor_response})
 
-    # Get advisor response and display it
-    with st.chat_message("assistant"):
-        advisor_response = advisor.send_api_request(prompt)
-        st.markdown(advisor_response)
-        st.session_state.messages.append({"role": "assistant", "content": advisor_response})
+    # Extract the predicted prices from the response
+    predicted_prices = ""
+    for line in advisor_response.split("\n"):
+        if re.match(r"\d{4},\w+,\d+", line):
+            predicted_prices += line + "\n"
 
-# To run the Streamlit app, save the script and execute: streamlit run app.py
+    if predicted_prices:
+        # Process the predicted prices
+        price_data = []
+        for line in predicted_prices.strip().split("\n"):
+            year, month, price = line.split(",")
+            price_data.append({"Year": int(year), "Month": month, "Predicted Median Price": float(price)})
+
+        # Create a DataFrame from the price data
+        price_df = pd.DataFrame(price_data)
+
+        # Create a line chart using Altair
+        chart = alt.Chart(price_df).mark_line().encode(
+            x=alt.X("yearmonth(Year, Month):T", title="Date"),
+            y=alt.Y("Predicted Median Price:Q", title="Predicted Median Price (PLN)"),
+            tooltip=["Year", "Month", "Predicted Median Price"]
+        ).properties(
+            title="Predicted Median Prices",
+            width=600,
+            height=400
+        )
+
+        # Display the chart
+        st.altair_chart(chart)
+    else:
+        st.write("No predicted prices found in the advisor's response.")
+
+
+
