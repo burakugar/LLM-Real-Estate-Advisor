@@ -107,5 +107,13 @@ def get_market_data(number_of_rooms):
                 year_data[f'rent_median_price_rooms_{month}'] = median_by_rooms
                 year_data[f'rent_std_price_rooms_{month}'] = std_by_rooms
         
-        market_data[str(year)] = year_data
-    return market_data
+        inflation_rates = pd.read_csv("dataset/poland_inflation_rates_oecd.csv")
+        inflation_rates['Date'] = pd.to_datetime(inflation_rates['Date'])
+        inflation_rates = inflation_rates.set_index('Date')
+        # Convert inflation rates to a dictionary
+        inflation_rates_dict = inflation_rates.to_dict()['Rate']
+
+        # Add inflation rates to the market data
+        market_data['inflation_rates'] = inflation_rates_dict
+
+        return market_data
