@@ -54,7 +54,7 @@ class RealEstateAdvisor:
                 "We are in 2024 July at the moment, if you are going to give advice, take this into consideration."
             )
         }
-
+        market_data = get_market_data(self.number_of_rooms)
         user_message = {
             "role": "user",
             "content": (
@@ -63,9 +63,10 @@ class RealEstateAdvisor:
                 f"Minimum Budget: {self.min_budget}\n"
                 f"Maximum Budget: {self.max_budget}\n"
                 f"Number of Rooms: {self.number_of_rooms}\n"
+                f"Market Data: {market_data}\n"
             )
         }
-
+        print("user_message", user_message)
         # Create messages without appending the market data message to self.messages
         messages = [system_message, user_message]
 
