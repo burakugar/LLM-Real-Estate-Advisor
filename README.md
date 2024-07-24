@@ -1,0 +1,4 @@
+![image](https://github.com/user-attachments/assets/c25b8266-82f5-455d-bc0b-c883341a7194)
+![image](https://github.com/user-attachments/assets/cc598a45-99f5-49c1-8a4a-de55935c517a)
+The purpose of this project is to provide a cutting-edge, AI-driven real estate investment advisory service that empowers clients to make informed decisions in the Polish real estate market, especially in Warsaw.
+Our system integrates real-time market data from various reliable sources, including web scraping techniques and proprietary datasets. By analyzing current market trends, median prices, and price fluctuations such as inflation, our AI algorithms provide up-to-date, accurate insights that help clients make well-informed decisions. The bot is provided with various data sources, such as inflation rates and price trends.
